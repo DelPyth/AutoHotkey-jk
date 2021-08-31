@@ -7,11 +7,13 @@
 ;@Ahk2Exe-Bin %A_ScriptDir%\bin32\AutoHotkeySC.bin, AutoHotkey32.exe
 ;@Ahk2Exe-Bin %A_ScriptDir%\bin64\AutoHotkeySC.bin, AutoHotkey64.exe
 
-#Requires AutoHotkey v2.0-a128+
+; AHK-JK will NOT work with v2 beta and above.
+#Requires AutoHotkey v2.0-a129
 
 ; Configuration
 functions_use_lowercase_initial_letter := true
 allow_wildcard_in_include := false
+allow_relative_in_include := true
 default_script_name := RegExReplace(A_ScriptName, '\.[^\.]*$', '.j?')
 
 ; Required libraries
@@ -692,17 +694,36 @@ SingleInstance(mode:='force') {
 
 
 Include(path) {
-    if !allow_wildcard_in_include && path ~= '[*?<>"]'  ; <>" are undocumented wildcard characters.
+    if !allow_wildcard_in_include && path ~= '[*?"]'  ; <>" are undocumented wildcard characters.
         throw Error('Include file "' path '" cannot be opened.')
     static already_included := (_ => (_.CaseSense := 'Off', _))(Map())
     included := 0
-    Loop Files path, 'F' {
-        path := A_LoopFileFullPath
-        if already_included.Has(path)
-            continue
-        already_included[path] := true
-        JsRT.RunFile path, default_script_encoding
-        ++included
+    if ((path ~= "^\<.+\>$") && (allow_relative_in_include))
+    {
+        SplitPath(J_ScriptFullPath,, dir)
+        path_docs := RegExReplace(path, "^\<(.+)\>$", A_MyDocuments . "\AutoHotkey\lib_jk\$1.jk")
+        path_lib := RegExReplace(path, "^\<(.+)\>$",  dir . "\lib\$1.jk")
+        if (!already_included.Has(path_docs) || !already_included.Has(path_lib))
+        {
+            if (FileExist(path_docs))
+                path := path_docs
+            else if (FileExist(path_lib))
+                path := path_lib
+            already_included[path] := true
+            JsRT.RunFile(path, default_script_encoding)
+            ++included
+        }
+    }
+    else
+    {
+        Loop Files path, 'F' {
+            path := A_LoopFileFullPath
+            if already_included.Has(path)
+                continue
+            already_included[path] := true
+            JsRT.RunFile(path, default_script_encoding)
+            ++included
+        }
     }
     if !included && !(path ~= '[*?]')
         throw Error('Include file "' path '" cannot be opened.')
