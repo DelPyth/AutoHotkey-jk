@@ -8,7 +8,7 @@
 ;@Ahk2Exe-Bin %A_ScriptDir%\bin64\AutoHotkeySC.bin, AutoHotkey64.exe
 
 ; AHK-JK will NOT work with v2 beta and above.
-#Requires AutoHotkey v2.0-a129
+#Requires AutoHotkey v2.0-a130
 
 ; Configuration
 functions_use_lowercase_initial_letter := true
